@@ -6,7 +6,10 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
+
 import it.polito.tdp.imdb.model.Actor;
+import it.polito.tdp.imdb.model.Adiacenza;
 import it.polito.tdp.imdb.model.Director;
 import it.polito.tdp.imdb.model.Movie;
 
@@ -61,9 +64,9 @@ public class ImdbDAO {
 	}
 	
 	
-	public List<Director> listAllDirectors(){
+	public void listAllDirectors(Map<Integer, Director> idMap){
 		String sql = "SELECT * FROM directors";
-		List<Director> result = new ArrayList<Director>();
+		
 		Connection conn = DBConnect.getConnection();
 
 		try {
@@ -71,9 +74,49 @@ public class ImdbDAO {
 			ResultSet res = st.executeQuery();
 			while (res.next()) {
 
-				Director director = new Director(res.getInt("id"), res.getString("first_name"), res.getString("last_name"));
+				if(!idMap.containsKey(res.getInt("id"))) {
+					
+					Director director = new Director(res.getInt("id"), res.getString("first_name"), res.getString("last_name"));
+					
+					idMap.put(director.getId(), director);
+					
+				}
 				
-				result.add(director);
+				
+			}
+			conn.close();
+			
+			
+		} catch (SQLException e) {
+			e.printStackTrace();
+			
+		}
+	}
+	
+	
+	public List<Director> getAllVertices(Map<Integer, Director> idMap, Integer anno){
+		
+		String sql="SELECT DISTINCT md.director_id "
+				+ "FROM movies_directors md, movies m "
+				+ "WHERE m.id=md.movie_id "
+				+ "AND m.year = ? ";
+		
+		List<Director> result = new ArrayList<Director>();
+		Connection conn = DBConnect.getConnection();
+
+		try {
+			PreparedStatement st = conn.prepareStatement(sql);
+			st.setInt(1, anno);
+			
+			ResultSet res = st.executeQuery();
+			while (res.next()) {
+				
+				
+				if(idMap.containsKey(res.getInt("md.director_id"))) {
+					result.add(idMap.get(res.getInt("md.director_id")));
+				}
+
+				
 			}
 			conn.close();
 			return result;
@@ -82,8 +125,60 @@ public class ImdbDAO {
 			e.printStackTrace();
 			return null;
 		}
+		
+		
+		
 	}
 	
+	public List<Adiacenza> getAllAdiacenze(Integer anno, Map<Integer, Director> idMap){
+		
+		String sql="SELECT md1.director_id, md2.director_id, count(*) as peso "
+				+ "FROM movies_directors md1, movies_directors md2, movies m1, movies m2, roles r1, roles r2 "
+				+ "WHERE md1.director_id > md2.director_id AND "
+				+ "m1.id=md1.movie_id AND "
+				+ "md1.movie_id = r1.movie_id AND "
+				+ "m2.id=md2.movie_id AND "
+				+ "md2.movie_id = r2.movie_id AND "
+				+ "r1.actor_id=r2.actor_id AND "
+				+ "m1.year=m2.year AND  "
+				+ "m1.year = ? "
+				+ "GROUP BY md1.director_id, md2.director_id ";
+		
+		
+		
+		List<Adiacenza> result = new ArrayList<>();
+		
+		Connection conn = DBConnect.getConnection();
+
+		try {
+			PreparedStatement st = conn.prepareStatement(sql);
+			st.setInt(1, anno);
+			
+			ResultSet res = st.executeQuery();
+			while (res.next()) {
+				
+				if(idMap.containsKey(res.getInt("md1.director_id")) && idMap.containsKey(res.getInt("md2.director_id"))) {
+					
+					result.add(new Adiacenza(idMap.get(res.getInt("md1.director_id")), idMap.get(res.getInt("md2.director_id")), res.getInt("peso")));
+					
+				}
+				
+
+				
+			}
+			conn.close();
+			return result;
+			
+		} catch (SQLException e) {
+			e.printStackTrace();
+			return null;
+		}
+		
+		
+		
+		
+		
+	}
 	
 	
 	

@@ -5,8 +5,11 @@
 package it.polito.tdp.imdb;
 
 import java.net.URL;
+import java.util.List;
 import java.util.ResourceBundle;
 
+import it.polito.tdp.imdb.model.Director;
+import it.polito.tdp.imdb.model.DirettoreConPeso;
 import it.polito.tdp.imdb.model.Model;
 import javafx.event.ActionEvent;
 import javafx.fxml.FXML;
@@ -35,10 +38,10 @@ public class FXMLController {
     private Button btnCercaAffini; // Value injected by FXMLLoader
 
     @FXML // fx:id="boxAnno"
-    private ComboBox<?> boxAnno; // Value injected by FXMLLoader
+    private ComboBox<Integer> boxAnno; // Value injected by FXMLLoader
 
     @FXML // fx:id="boxRegista"
-    private ComboBox<?> boxRegista; // Value injected by FXMLLoader
+    private ComboBox<Director> boxRegista; // Value injected by FXMLLoader
 
     @FXML // fx:id="txtAttoriCondivisi"
     private TextField txtAttoriCondivisi; // Value injected by FXMLLoader
@@ -48,16 +51,73 @@ public class FXMLController {
 
     @FXML
     void doCreaGrafo(ActionEvent event) {
+    	
+    	txtResult.clear();
+    	boxRegista.getItems().clear();
+    	
+    	Integer anno = boxAnno.getValue();
+    	
+    	model.creaGrafo(anno);
+    	
+    	txtResult.appendText("Grafo creato!\n");
+    	txtResult.appendText("Numero vertici: "+model.getNVertici()+"\n");
+    	txtResult.appendText("Numero archi: "+model.getNArchi()+"\n");
+    	
+    	boxRegista.getItems().addAll(model.getDirettori());
+    	
 
     }
 
     @FXML
     void doRegistiAdiacenti(ActionEvent event) {
+    	
+    	
+    	
+    	Director r = boxRegista.getValue();
+    	
+    	List<DirettoreConPeso> dp= model.getRegistiAdiacenti(r);
+    	
+    	txtResult.appendText("Registi adiacenti a: "+r.toString()+"\n");
+    	
+    	for(DirettoreConPeso d: dp) {
+    		txtResult.appendText(d.getD().toString()+ " - "+ " Numero di attori condivisi: "+d.getPeso()+  "\n");
+    		
+    	}
 
     }
 
     @FXML
     void doRicorsione(ActionEvent event) {
+    	
+    	txtResult.clear();
+    	
+    	int numeroAttori;
+    	
+    	try {
+    		numeroAttori= Integer.parseInt(txtAttoriCondivisi.getText());
+    	}
+    	catch(NumberFormatException e) {
+    		txtResult.appendText("Devi inserire un valore numerico intero");
+    		return;
+    		
+    	}
+    	
+    	
+    	Director d= boxRegista.getValue();
+    	
+    	List<Director> percorso = model.trovaPercorso(numeroAttori, d);
+    	
+    	for(Director dd: percorso) {
+    		if (percorso.size() != 0) {
+    			txtResult.appendText(dd.toString()+"\n");
+    		}
+    		else
+    			txtResult.appendText("Errore");
+    	}
+    	
+    	
+    	int peso = model.getPesoMax();
+    	txtResult.appendText("\nPeso max: "+peso);
 
     }
 
@@ -76,6 +136,8 @@ public class FXMLController {
    public void setModel(Model model) {
     	
     	this.model = model;
+    	boxAnno.getItems().addAll(2004, 2005, 2006);
+    	
     	
     }
     
